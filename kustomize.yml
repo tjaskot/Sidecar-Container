@@ -1,0 +1,41 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sidecar-webapp
+  labels:
+    app: nginx-webapp
+spec:
+  containers:
+    - name: main-application
+      image: nginx
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/nginx
+    - name: sidecar-container
+      image: busybox
+      command: [ "sh","-c","while true; do cat /var/log/nginx/access.log && date >> /var/log/nginx/timestamp; sleep 30; done" ]
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/nginx
+  volumes:
+    - name: shared-logs
+      emptyDir: {}
+
+---
+
+# Service Configuration
+# --------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidecar-webapp-service
+  labels:
+    run: sidecar-webapp
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    app: sidecar-webapp
+  type: NodePort
